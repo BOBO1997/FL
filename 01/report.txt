@@ -1,0 +1,154 @@
+【問1について】
+実行結果は以下のようになる。
+
+>>> sum_to 10;;
+- : int = 55
+>>> is_prime 72;;
+- : bool = false
+>>> is_prime 71;;
+- : bool = true
+>>>gcd 36 96;;
+- : int = 12
+>>> gcd 112 37;;
+- : int = 1
+
+
+【問2について】
+実行結果は以下のようになる。
+
+>>> twice (fun x -> x * x) 5;;
+- : int = 625
+>>> repeat (fun x -> x + x) 10 1;;
+- : int = 1024
+
+
+【問3について】
+
+再帰関数、
+
+let rec fix f x = f (fix f) x;;
+
+を、再帰でない関数、
+
+let function f x = [f (x-k)が含まれるexpression]
+
+に作用させると、
+
+(以下の式で使う「=」は等しいという意味。)
+fix functoin n 
+= function (fix function) n
+= [fix function (n - k) が含まれるexpression]
+(なぜなら、fix function を function の第一引数 f だと考えると、f (n-k)の部分がfix function (n-k)になる。)
+
+になるから、fix関数を使って再帰でない関数を再帰させることが可能になる。
+
+よって、問1の関数is_prime, gcdの中で定義したsub_prime, sub_gcdを、function [関数] [引数] = [[関数][引数]を含むexpression]にすればよい。sum_to関数についても同様である。
+
+書き直した関数を実行すると、確かに問1で定義した関数と同じ結果を得る。
+
+【問4について】
+
+fold_right、fold_leftは共に再帰を用いて書くことができる。
+
+fold_rightは、まずリストの先頭の要素を分離し、それをfの第1引数とし、fの第2引数にはfold_rightが分離したリストの後半について、再帰によってfold_rightが既に処理したものが入る。これをocamlで表現すると、以下のようになる。
+
+let rec fold_right f lst e =
+	match lst with
+	| [] -> e
+	| a::al -> f a (fold_right f al e);;
+
+fold_leftは、関数fについて、fold_leftが受け取ったリストを後ろの要素から分離するわけだが、これは、リストの先頭から要素を取り出すために、fold_leftで再帰を行い、関数fを用いて末尾再帰をすればよく、以下のようにocamlで表現できる。
+
+let rec fold_left f e lst =
+	match lst with
+	| [] -> e
+	| a::al -> fold_left f (f e a) al;;
+
+この様に定義したfold_right, fold_leftが正しく動くかどうかは、問6のappend関数をfold_right, fold_leftを用いて書く部分で確認する。
+
+
+【問5について】
+
+appendを実現するにあたり、連結するリストの前に付くリストをx, 後ろに付くリストをyとすると、xの後ろの要素から順にyの先頭に追加していけばよい。
+この方法でかかる時間は、xの長さに比例する。xの後ろの要素からyに追加していくためには、それぞれの階層でxの要素を一つ保持するような関数の再帰を用いればよい。
+実行結果の一例として、
+
+>>> append [1;2;3] [4;5;6];;
+- : int list = [1;2;3;4;5;6]
+
+となる。
+
+filterを実現するにあたり、方針としてはリストの先頭の要素とそれ以外に分離し、その先頭の要素が判別関数に合致するなら、後ろのリストを再帰によってfilter済みのものとして受け取ったものと結合するという方針をとる。
+実行結果は以下のようになる。実行時間はリストの長さに比例する。
+
+>>> filter (fun x -> if (x mod 2) = 0 then true else false) [1;2;3;4;5;6]
+- : int list = [2;4;6]
+
+
+【問6について】
+
+filter_right でappendを書くのは容易で、問5の表現を引用して、xをfilter_rightの第2引数(要素を各個分離するリストに当たる引数)にとり、filter_rightの第1引数にリストを連結する関数を入れれば完成する。
+完成したものをappend_rとした。
+
+一方、filter_leftでappendを書くために、reverse関数を定義した。
+これは、fold_leftが、受け取ったリストについて、先頭から処理していくため、方針としては、xをreverseしたものを、前から順にyに追加していくという方法をとる。
+完成したものをappend_lとした。
+実行結果は以下のようになる。実行時間は、append_rはxの長さに比例、append_lはappend_rの2倍である。
+
+>>> append_r [1;2;3] [4;5;6];;
+- : int list = [1;2;3;4;5;6]
+
+>>> append_l [1;2;3] [4;5;6];;
+- : int list = [1;2;3;4;5;6]
+
+filter関数をfold_rightで書くために、判別関数を作成したfilter関数の中でのグローバル変数として使えるよう、fold_rightの定義をfilterの中で定義し、fold_rightで用いる関数において、判別関数を使えるようにした。なお、fold_leftについても同様である。
+実行結果は以下のようになる。
+
+>>> filter_r (fun x -> if (x mod 2) = 0 then true else false) [1;2;3;4;5;6]
+- : int list = [2;4;6]
+
+>>> filter_l (fun x -> if (x mod 2) = 0 then true else false) [1;2;3;4;5;6]
+- : int list = [2;4;6]
+
+
+【問7について】
+方針としては、リストの先頭要素を除いて、permitationを施した2次元リストの各要素に、除いておいた先頭要素を素のリストの各index間にinsertしていったものを、出力となる2次元リストに追加するというものである。
+
+処理を階層化して考えた。
+つまり、
+与えられたリストから、最初の要素を分離して、後ろのリストについてpermitationをする再帰関数(sub_permとする)
+
+permitationが完成した2次元リストから、先頭のリストを抜き出し、sub_permで分離した要素を、この先頭リストにinsertし、残りの二次元リストについてのinsertが終わったものが含まれる2次元リストと連結する再帰関数(insert_fullとする)
+
+抜き出されたリストに対して各インデックスの間にsub_perm分離された要素を挿入し、挿入が完了したリストを2次元リストにまとめたものを返す関数(insertとする)
+
+の3つの関数に分けた。
+実行結果は以下のようになる。かかる時間は[リストの長さ]!である。
+
+>>> perm [1;2;3];;
+- : int list list =
+[[1; 2; 3]; [2; 1; 3]; [2; 3; 1]; [1; 3; 2]; [3; 1; 2]; [3; 2; 1]]
+
+
+【発展1について】
+
+reverseは再帰関数で最初の要素から空のリストに先頭から追加していけばよい。
+実行結果は以下のようになる。実行時間はリストの長さに比例する。
+
+utop # reverse [1;2;3;4;5];;
+- : int list = [5; 4; 3; 2; 1]
+
+fold_rightをもちいてreverseを実現するには、要素の追加の操作(::)をfold_rightの再帰から戻ってきた後に行うことを考える。そのために、fold_right f lst eにおける関数fを関数を返す関数にすることで、fold_rightが最終的に関数eを返し、その中でfによって連結すればよい。
+実行結果は以下のようになる。実行時間は最後に連結を行うから、リストの長さに比例する。
+
+utop # reverser [1;2;3;4;5];;
+- : int list = [5; 4; 3; 2; 1]
+
+
+【発展2について】
+
+fold_rightをfold_leftで書くことも、fold_leftをfold_rightを書くことも、受け取るリストをreverseしておけばよい。また、fold_rightとfold_leftでは中のfの引数におけるlistの要素とeの順番が逆になっているので、新しい関数gを次のように定義すればよい。
+
+let g a b = f b a
+
+ここで書いたfold_right, fold_leftを使っても前問のfold_right, fold_leftを代替できる。

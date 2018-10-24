@@ -1,0 +1,213 @@
+2018/5/7
+
+[3-1]
+まず、コンパイルは、
+
+$ ocamlc -c strSet.mli
+$ ocamlc -c strSet.ml
+$ ocamlc -c sort.ml
+$ ocamlc -o sort strSet.cmo sort.cmo
+$ ./sort << END
+> abc
+> def
+> abd
+> efg
+> acg
+> END
+abc
+abd
+acg
+def
+efg
+
+のように、辞書順にsortされることが、確認できた。
+次に、
+
+$ cp sort.ml mysort.ml
+
+でsort.mlをmysort.mlにコピーし、同様にコンパイルし、mysort.cmoを作成した。
+インタプリタを立ち上げ、以下の操作を試したみた。
+
+# #load "strSet.cmo";;
+# StrSet.empty;;
+- : StrSet.t = <abstr>
+# StrSet.count_sub;;
+Error: Unbound value StrSet.count_sub
+# open StrSet;;
+# add "abc" empty;;
+- : t = <abstr>
+# add "abc" (add "def" empty);;
+- : t = <abstr>
+# #load "mysort.cmo";;
+aaa
+bbb
+ccc
+abc
+bca
+cba
+[ctrl + d]
+aaa
+abc
+bbb
+bca
+cba
+ccc
+
+これより、stringがabstrによって、マスクされていることがわかる。
+また、mysort.cmoもインタプリタ上で動くことがわかる。
+
+ocamlmakefileは、OCamlMakefileを実行するディレクトリにコピーし、Makefileに、提出したような内容を書いて、terminal上でmakeすると、以下のようになる。
+$ make
+make[1]: ディレクトリ '/home/tansei/Documents/3S/ocaml/03/Week03' に入ります
+ocamldep strSet.mli > ._bcdi/strSet.di
+ocamldep sort.ml > ._d/sort.d
+ocamldep strSet.ml > ._d/strSet.d
+ocamlc -c strSet.mli
+ocamlc -c strSet.ml
+ocamlc -c sort.ml
+ocamlc \
+			  \
+			               -o sort \
+			strSet.cmo sort.cmo
+make[1]: ディレクトリ '/home/tansei/Documents/3S/ocaml/03/Week03' から出ます
+$ make clean
+rm -f sort sort.top strSet.cmi strSet.cmi sort.cmi strSet.cmo sort.cmo strSet.cmx sort.cmx strSet.asm sort.asm strSet.s sort.s strSet.o sort.o                sort.cma sort.cmxa sort.a sort.cmi sort.cmo sort.cmi sort.cmx sort.o  strSet.annot sort.annot .cmi .cmo .cmx .o dllsort_stubs.so
+rm -rf ._bcdi ._ncdi ._d
+
+
+[3-2]
+stackを実現するのに、listについてのpop関数とpush関数を用意した。
+pop関数は取り出した先頭の要素と残りのスタックのリストのtupleを返すので、もしlistが空になったらpopが呼び出されたときにraise [exception]する。これをインタプリタ上でuseした。
+実行例はintの要素をint listのスタックに入れている。
+
+# let stack = empty;;
+val stack : t = <abstr>
+# let stack = pop stack;;
+Exception: Empty.
+# let stack = push 1 stack;;
+val stack : t = <abstr>
+# let stack = push 2 stack;;
+val stack : t = <abstr>
+# let stack = push 3 stack;;
+val stack : t = <abstr>
+# let (a, stack) = pop stack;;
+val a : int = 3
+val stack : t = <abstr>
+# let (b, stack) = pop stack;;
+val b : int = 2
+val stack : t = <abstr>
+let (c, stack) = pop stack;;
+val c : int = 1
+val stack : t = <abstr>
+# let (d, stack) = pop stack;;
+Exception: Empty.
+
+
+[3-3]
+
+二分木を、再帰するヴァリアント型で実現した。
+addは同じ要素が入った場合は別のものとしてカウントしているため、この木はmultisetとして機能している。
+
+# open StringMultiset;;
+# let tree = empty;;
+val tree : t = <abstr>
+# let tree = add "3" tree;;
+val tree : t = <abstr>
+# let tree = add "1" tree;;
+val tree : t = <abstr>
+# let tree = add "5" tree;;
+val tree : t = <abstr>
+# let tree = add "0" tree;;
+val tree : t = <abstr>
+# let tree = add "2" tree;;
+val tree : t = <abstr>
+# let tree = add "4" tree;;
+val tree : t = <abstr>
+# let tree = add "6" tree;;
+val tree : t = <abstr>
+# count "2" tree;;
+- : int = 1
+# remove "3" tree;;
+- : t = <abstr>
+# let tree = remove "3" tree;;
+val tree : t = <abstr>
+# count "3" tree;;
+- : int = 0
+# let tree = add "0" tree;;
+val tree : t = <abstr>
+# count "0" tree;;
+- : int = 2
+
+
+[3-4]
+
+keyとvalueのタプルを、問3で作成した二分木の要素にしている。
+ただし、同じkeyに対する入力は、そのkeyのvalueを新しいものに上書きしている点で問3と異なる。
+
+# open StringAssoc;;
+# let dic = empty;;
+val dic : t = <abstr>
+# let dic = add "3" "3" dic;;
+val dic : t = <abstr>
+# let dic = add "1" "1" dic;;
+val dic : t = <abstr>
+# let dic = add "2" "2" dic;;
+val dic : t = <abstr>
+# let dic = add "0" "0" dic;;
+val dic : t = <abstr>
+# let dic = add "4" "4" dic;;
+val dic : t = <abstr>
+# let dic = add "5" "5" dic;;
+val dic : t = <abstr>
+# let dic = remove "3" dic;;
+val dic : t = <abstr>
+# lookup "0" dic;;
+- : string = "0"
+# lookup "1" dic;;
+- : string = "1"
+# lookup "2" dic;;
+- : string = "2"
+# lookup "3" dic;;
+Exception: No_Such_Key.
+# lookup "4" dic;;
+- : string = "4"
+# lookup "5" dic;;
+- : string = "5"
+# lookup "6" dic;;
+Exception: No_Such_Key.
+# let dic = add "0" "100" dic;;
+val dic : t = <abstr>
+# lookup "0" dic;;
+- : string = "100"
+# let dic = remove "0" dic;;
+val dic : t = <abstr>
+# lookup "0" dic;;
+Exception: No_Such_Key.
+
+[3-5]
+行列の要素に関するシグニチャを、intとboolについて定義し、MatrixというstructにはSEMIRINGと行列の演算に関するシグニチャを食わせた。
+行列の掛け算については、後ろの行列の縦ベクトル要素を後ろから抜き出して前の行列との掛け算の結果に対し、前から次のベクトルとの掛け算の結果を付けていくという方法を取った。
+intの∞を表現するのにはヴァリアント型でINFを定義した。
+行列のmulの計算時間は、mul (m, l) (l, n)のサイズだと、l*(l*m)*n = mn(l^2) 程度である。
+
+# let a = [[VInt 1;VInt 2];[VInt 3;VInt 4]];;
+val a : infInt list list = [[VInt 1; VInt 2]; [VInt 3; VInt 4]]
+# let b = [[VInt 5;VInt 6];[VInt 7;VInt 8]];;
+val b : infInt list list = [[VInt 5; VInt 6]; [VInt 7; VInt 8]]
+# IntMatrix.add a b;;
+- : IntMatrix.matrix = [[VInt 6; VInt 8]; [VInt 10; VInt 12]]
+# IntMatrix.mul a b;;
+- : IntMatrix.matrix = [[VInt 19; VInt 22]; [VInt 43; VInt 50]]
+# let c = [[VInt 9; VInt 10];[VInt 11; INF]];;
+val c : infInt list list = [[VInt 9; VInt 10]; [VInt 11; INF]]
+# IntMatrix.mul a c;;
+- : IntMatrix.matrix = [[VInt 31; INF]; [VInt 71; INF]]
+# let d = [[false; false];[false; true]];;
+val d : bool list list = [[false; false]; [false; true]]
+# let e = [[true; true];[false; false]];;
+val e : bool list list = [[true; true]; [false; false]]
+# BoolMatrix.add d e;;
+- : BoolMatrix.matrix = [[true; true]; [false; true]]
+# BoolMatrix.mul d e;;
+- : BoolMatrix.matrix = [[false; false]; [false; false]]
+

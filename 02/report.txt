@@ -1,0 +1,107 @@
+2018/4/29
+
+[2-1]
+足し算については、add a b という関数名と引数を取り、aから1引いてbに1を足す操作を再帰で実現した。実行時間はaの大きさに比例する。
+引き算については、sub a b という関数名と引数を取り、aが0ならbが何であろうと0、aが0でないならばbが0になるまでa、bから同時に1ずつ減らし、最終的にaを返す。これも再帰で実現した。実行時間はbの大きさに比例する。
+掛け算については、mul a b という関数名と引数を取り、bをa回足すという方針で、再帰を用いて実現した。bを1回足すごとに、残りの足す回数(つまりa)を1ずつ減らしていく。実行時間はa*bに比例する。
+累乗については、pow a b という関数名と引数を取り、aをb回掛ける操作をする。これも、再帰を用いて、aを1回掛けるごとに、bを1減らしていった。bが0になったら、1を掛けて、再帰を戻す。実行時間はa^bに比例する。
+n2iについては、n2i a という関数名と引数を取り、S of nat の枠を一つ外すごとに、戻り値に1を足す操作をする再帰関数で実現した。実行時間はaに比例する。
+i2nについては、i2n a という関数名と引数を取り、外側からSで再帰的に1つずつ囲っていき、aが0になるまで繰り返す。実行時間はaに比例する。
+実行結果は以下のようになる。
+# #use "2p1.ml";;
+type nat = Z | S of nat
+val add : nat -> nat -> nat = <fun>
+val sub : nat -> nat -> nat = <fun>
+val mul : nat -> nat -> nat = <fun>
+val pow : nat -> nat -> nat = <fun>
+val fact : nat -> nat = <fun>
+val n2i : nat -> int = <fun>
+val i2n : int -> nat = <fun>
+# let a = S(S(S(S Z)));;
+val a : nat = S (S (S (S Z)))
+# let b = S(S Z);;
+val b : nat = S (S Z)
+# add a b;;
+- : nat = S (S (S (S (S (S Z)))))
+# sub a b;;
+- : nat = S (S Z)
+# mul a b;;
+- : nat = S (S (S (S (S (S (S (S Z)))))))
+# pow a b;;
+- : nat = S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S Z)))))))))))))))
+# n2i a;;
+- : int = 4
+# i2n 10;;
+- : nat = S (S (S (S (S (S (S (S (S (S Z)))))))))
+
+[2-2]
+行きがけ順では、ひとかたまりの「親、左の子(の部分木)、右の子(の部分木)」について、親、左の子、右の子の順番でlistにいれるから、treeがLeaf(つまり空)でないときは、親(の要素)、左の子(の部分木の要素を再帰でlist行きがけ順ににしたもの)、右の子(の部分木の要素を再帰で行きがけ順にしたもの)、というようにlistを連結する。
+通りがけ順では、左の子、親の要素、右の子のような順番で、listを連結すれば良い。
+帰りがけ順では、左の子の部分木、右の子の部分木、親の要素のような順番で、listを連結すれば良い。
+計算時間はどの方法を用いても、完全二分木については段数をnとしたとき、n* (2^n)のオーダーの時間がかかる。(1*(2^(n-2)) + 2*(2^(n-3)) + ... + (2^(n-2))*1 = n*(2^n))
+実行結果は以下のようになる。
+# #use "2p2.ml";;
+type 'a tree = Leaf | Node of 'a * 'a tree * 'a tree
+val pre_order : 'a tree -> 'a list = <fun>
+val in_order : 'a tree -> 'a list = <fun>
+val post_order : 'a tree -> 'a list = <fun>
+# let u = Node (1, Node (2, Node (4, Node (8, Leaf, Leaf), Node (9, Leaf, Leaf)), Node (5, Node (10, Leaf, Leaf), Node (11, Leaf, Leaf))), Node (3, Node (6, Node (12, Leaf, Leaf), Node (13, Leaf, Leaf)), Node (7, Node (14, Leaf, Leaf), Node (15, Leaf, Leaf))));;
+val u : int tree =
+  Node (1,
+   Node (2, Node (4, Node (8, Leaf, Leaf), Node (9, Leaf, Leaf)),
+    Node (5, Node (10, Leaf, Leaf), Node (11, Leaf, Leaf))),
+   Node (3, Node (6, Node (12, Leaf, Leaf), Node (13, Leaf, Leaf)),
+    Node (7, Node (14, Leaf, Leaf), Node (15, Leaf, Leaf))))
+# pre_order u;;
+- : int list = [1; 2; 4; 8; 9; 5; 10; 11; 3; 6; 12; 13; 7; 14; 15]
+# in_order u;;
+- : int list = [8; 4; 9; 2; 10; 5; 11; 1; 12; 6; 13; 3; 14; 7; 15]
+# post_order u;;
+- : int list = [8; 9; 4; 10; 11; 5; 2; 12; 13; 6; 14; 15; 7; 3; 1]
+
+[2-3]
+幅優先探索をするにあたり、手順としては、行きがけ順で全要素を一度ずつ舐め、その際、舐めた要素を階層ごとに異なるlistで分類し、これらのlistを二次元listでまとめる。
+まず、level_order内で定義したappend関数は、二次元listを2個受け取り、前の1次元listから順に(t_dim1の第一要素)、(t_dim2の第一要素)の順で連結し、新しい二次元listの第一要素にするような再帰の操作を行う。こうしてできた二次元listは、部分木のそれぞれの深さの層について左から見ていった順に要素が並んである。
+次に、pre_order関数では、左のappendされた二次元listと右のappendされた二次元listをappendで一つの二次元listにした上で、その先頭に着目ノードの要素をlistにしたものを追加する。(一つ上の深さの層の要素を追加)
+これを再帰させることで、[[1段目の左から要素を並べたlist][2段目から要素を並べたlist]...[n段目の左から要素を並べたlist]]のような二次元listが得られる。
+これを、一次元配列にすれば、ほしい幅優先探索になる。これにはt_to_oという関数を用意した。これは、先頭の要素を分離し、再帰的に一次元listにしたものと連結する関数である。
+計算時間は完全二分木の場合、2^nのオーダーである。
+実行結果は以下のようになる。
+# #use "2p3b.ml";;
+type 'a tree = Leaf | Node of 'a * 'a tree * 'a tree
+val level_order : 'a tree -> 'a list = <fun>
+# level_order u;;
+- : int list = [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15]
+
+[2-4]
+int型はint、加減乗除は引数が2つあるので、要素数2のexprのtupleで表現する。bool型はbool、等号、不等号は引数が2つあるので、要素数2のexprのtupleで表現される。if文は条件、真だったときの処理、偽だったときの処理の3つの引数があるから、要素数3のexprのtupleで表現される。
+
+[2-5]
+まず、Eval_errorという例外を定義する。
+evalはexpr型をうけとり、value型を返すから、expr型で受け取った引数に対して具体的なintやboolに剥がしてから具体的な処理をしたあとに、再びvalue型の戻り値にすれば良い。
+型がintであるべきところにbool型が入力された場合や、boolであるべきところにintが入力された場合は、例外がraiseされ、Eval_errorが返される。
+
+# #use "2p5.ml";;
+type value = VInt of int | VBool of bool
+type expr =
+    EConstInt of int
+  | EAdd of expr * expr
+  | ESub of expr * expr
+  | EMul of expr * expr
+  | EDiv of expr * expr
+  | EConstBool of bool
+  | EEqual of expr * expr
+  | ELessThan of expr * expr
+  | EIfThenElse of expr * expr * expr
+exception Eval_error
+val eval : expr -> value = <fun>
+
+# let b = EEqual ((EConstBool true), (EConstBool false));;
+val b : expr = EEqual (EConstBool true, EConstBool false)
+# eval b;;
+Exception: Eval_error.
+# let b = EEqual ((EConstInt 2), (EConstInt 3));;
+val b : expr = EEqual (EConstInt 2, EConstInt 3)
+# eval b;;
+- : value = VBool false
+

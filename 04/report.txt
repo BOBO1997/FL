@@ -1,0 +1,80 @@
+[4-1]
+eLookupは、目標のkeyを、辞書のlistの要素のタプルのkeyと比較し、異なっていたら再帰で次のlistの要素をみる辞書の最後まで検索する。最後まで検索して、見つからなかったらerr型のErrを返す
+lookupDivは、キーkxの値とキーkyの値をうけとって、割り算をしたものをerr型になおして出力する関数である。
+
+# #use "ex4-1.ml";;
+type 'a m = Ok of 'a | Err of string
+val ( >>= ) : 'a m -> ('a -> 'b m) -> 'b m = <fun>
+val return : 'a -> 'a m = <fun>
+val err : string -> 'a m = <fun>
+val myDiv : int -> int -> int m = <fun>
+val eLookup : 'a -> ('a * 'b) list -> 'b m = <fun>
+val lookupDiv : 'a -> 'a -> ('a * int) list -> int m = <fun>
+val table : (string * int) list = [("x", 6); ("y", 0); ("z", 2)]
+val isErr : 'a m -> bool = <fun>
+ok
+- : unit = ()
+
+
+[4-2]
+find_bananaの方は、素直にba, na, si, mo, nの5文字について、候補の数0~9までを虱潰しに調べていけば良い。
+find_moneyの方は、自前でremove関数を用意し、もし見つかった場合は対象をlistからremoveしたlistを返す、もし見つからなかった場合はそのままのlistを返す関数である。これを利用し、一度使われた数字を取り除いたlistをつぎの取り出しもとにすれば、異なる文字に対する数字の重複はなくなる。また、先頭が0でないことを保証するために、guardにs, mにあたる、x1, x5について、0でないという条件を課した。
+
+# #use "ex4-2.ml";;
+type 'a m = 'a list
+val ( >>= ) : 'a m -> ('a -> 'b m) -> 'b m = <fun>
+val return : 'a -> 'a m = <fun>
+val guard : bool -> unit m = <fun>
+val test_banana : int -> int -> int -> int -> int -> bool = <fun>
+val test_money :
+  int -> int -> int -> int -> int -> int -> int -> int -> bool = <fun>
+val find_banana : (int * int * int * int * int) m =
+  [(1, 2, 0, 4, 4); (2, 4, 0, 8, 8); (2, 5, 0, 1, 0); (3, 7, 0, 5, 4);
+   (4, 9, 0, 9, 8); (5, 0, 1, 0, 0); (6, 2, 1, 4, 4); (7, 4, 1, 8, 8);
+   (7, 5, 1, 1, 0); (8, 7, 1, 5, 4); (9, 9, 1, 9, 8); (0, 0, 0, 0, 0)]
+val remove : 'a -> 'a m -> 'a m = <fun>
+val find_money : (int * int * int * int * int * int * int * int) m =
+  [(9, 5, 6, 7, 1, 0, 8, 2)]
+
+[4-3]
+文字列同士を連結させて、前の情報を保持する機能はbindに持たせた。bindでは、(f xのtupleの第一要素) について、得られた文字列を、xのtupleの第二要素の後ろに結合させる。
+
+# #use "ex4-3.ml";;
+type 'a m = 'a * string
+val ( >>= ) : 'a m -> ('a -> 'b m) -> 'b * string = <fun>
+val return : 'a -> 'a * string = <fun>
+val writer : string -> unit * string = <fun>
+val msg : int -> string = <fun>
+val fib : int -> int m = <fun>
+Fib(4)
+Fib(2)
+Fib(0)
+Fib(1)
+Fib(3)
+Fib(1)
+Fib(2)
+Fib(0)
+Fib(1)
+- : unit = ()
+
+[4-4]
+モナドの型自体は関数として持っておいて、状態(メモリ)を受け取って、(値,状態)を返すものとする。
+search関数は、検索要素のkeyとメモリを受取、再帰を用いてメモリの最後までメモリの要素のtupleのkeyで合致するものを検索する。
+memoの役割は2つで、ほしい値がすでにメモリにあるかどうか検索する機能と、なかった場合にその値を追加する機能である。
+runMemoについては、適当なmemoryを与えてやって、返ってきたtupleの先頭の値を取り出す。
+
+# #use "ex4-4.ml";;
+type 'a option = Some of 'a | None
+type 'a m = ('a * 'a) list -> 'a * ('a * 'a) list
+val search : 'a -> ('a * 'b) list -> 'b option = <fun>
+val ( >>= ) :
+  'b m -> ('b -> 'b m) -> ('b * 'b) list -> 'b * ('b * 'b) list = <fun>
+val return : 'a -> 'b -> 'a * 'b = <fun>
+val memo :
+  (int -> int m) -> int -> (int * int) list -> int * (int * int) list =
+  <fun>
+val runMemo : 'a m -> 'a = <fun>
+val fib : int -> int m = <fun>
+ok
+- : unit = ()
+
